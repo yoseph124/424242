@@ -166,10 +166,6 @@
 
         // 게시글 저장 소스
         function downloadText(filename) {
-            if (posts.length == 0) {
-                alert('저장할 데이터가 없습니다.');
-                return;
-            }
 
             var element = document.createElement('a');
             var jsonString = JSON.stringify(posts, null, 4);
