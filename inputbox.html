@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="UTF-8">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,20 +10,19 @@
             margin: 5px;
             padding: 0;
         }
-        th, td {
+
+        th,
+        td {
             border: 1px solid #000;
             vertical-align: middle;
             text-align: center;
         }
-        tbody>tr {
-            counter-increment: aaa;
-        }
-        tbody>tr>td:first-child:before {
-            content: counter(aaa) " ";
-        }
+
+
         td:nth-child(3) {
             text-align: left;
         }
+
         .button {
             border: none;
             padding: 8px 16px;
@@ -34,34 +34,38 @@
             cursor: pointer;
             border-radius: 4px;
         }
-        .delete-button, .comment-button {
+
+        .delete-button,
+        .comment-button {
             background-color: #bce6f7;
         }
     </style>
 </head>
+
 <body>
-    <input id="name" type="text" style="width: 100px; height: 30px; margin-right: 0px;" OnKeyDown="CheckEnter1('det')">
-    <input id="det" type="text" style="width: 500px; height: 30px; margin: 10px 5px 15px 5px;" OnKeyDown="CheckEnter2('updeat')">
-    <input type="submit" value="글작성" onClick="updeat()" class="button">
-    <table style="border-collapse: collapse;" id="ttable">
-        <input type="submit" onclick="downloadText()" value="저장하기" class="button comment-button">
-        <button for="fileBtn" class="button comment-button" id="open_file">불러오기</button>
+    <input id="inputWriter" type="text" style="width: 100px; height: 30px; margin-right: 0px;" OnKeyDown="CheckEnter1('inputContent')">
+    <input id="inputContent" type="text" style="width: 500px; height: 30px; margin: 10px 5px 15px 5px;"
+        OnKeyDown="CheckEnter2('updeat')">
+    <input type="submit" value="글작성" onClick="addPost()" class="button">
+    <table style="border-collapse: collapse;" id="postTable">
+        <input type="submit" onclick="downloadText('posts.json')" value="저장하기" class="button comment-button">
+        <button for="fileBtn" class="function-btn button comment-button" id="open_file">불러오기</button>
         <input type="file" id="fileBtn" style="display:none" accept=".json" title='Select JSON File' />
-        <button onclick="alldil(this)" style="width: 150px; height:40px;" class="button comment-button">게시판 지우기</button>
+        <button onclick="deleteAllPosts()" style="width: 150px; height:40px;" class="button comment-button">게시판
+            지우기</button>
         <tr>
-            <th scope="col" style="width: 50px; height: 25px;">번호</th>
-            <th scope="col" style="width: 150px; height: 25px;">작성자</th>
-            <th scope="col" style="width: 1000px; height: 25px;">내용</th>
-            <th scope="col" style="width: 200px; height: 25px;">작성일</th>
-            <th scope="col" style="width: 200px; height: 25px;">기능</th>
+            <th scope="col" style="width: 50px; height: 25px;" id="numHead">번호</th>
+            <th scope="col" style="width: 150px; height: 25px;" id="writerHead">작성자</th>
+            <th scope="col" style="width: 1000px; height: 25px;" id="contentHead">내용</th>
+            <th scope="col" style="width: 200px; height: 25px;" id="dateHead">작성일</th>
+            <th scope="col" style="width: 200px; height: 25px;" id="funcHead">기능</th>
         </tr>
-        <tbody id="nobo"></tbody>
+        <tbody id="postList"></tbody>
     </table>
 
     <script>
-        var aname = document.getElementById('name');
-        var det = document.getElementById('det');
-        let today = new Date();
+        let posts = [];
+        let postNum = 1;
 
         function CheckEnter1(d) {
             var keycode = event.keyCode;
@@ -73,139 +77,136 @@
         function CheckEnter2(u) {
             var keycode = event.keyCode;
             if (keycode == 13) {
-                updeat();
+                addPost();
             }
         }
 
-        function updeat() {
-            const table = document.getElementById('nobo');
-            const newRow = table.insertRow();
-            const newCell1 = newRow.insertCell(0);
-            const newCell2 = newRow.insertCell(1);
-            const newCell3 = newRow.insertCell(2);
-            const newCell4 = newRow.insertCell(3);
-            const newCell5 = newRow.insertCell(4);
-            newCell1.innerText = '';
-            newCell2.innerText = aname.value;
-            newCell3.innerText = det.value;
-            let today = new Date();
-            newCell4.innerText = today.toLocaleString();
-            newCell5.innerHTML = '<button onClick="remove_tr(this)" class="button delete-button">삭제</button><button onClick="comment(this)" class="button comment-button">댓글</button>';
+        function addPost() {
+            const writer = document.querySelector('#inputWriter').value;
+            const content = document.querySelector('#inputContent').value;
+            const currentTime = new Date().toLocaleString();
+
+            if (writer.trim() === '' || content.trim() === '') {
+                alert('작성자 혹은 글 내용을 입력해주세요.');
+                return;
+            }
+
+            const post = {
+                num: postNum++,
+                writer: writer,
+                content: content,
+                time: currentTime,
+            };
+
+            posts.push(post);
+
+            document.querySelector('#inputWriter').value = '';
+            document.querySelector('#inputContent').value = '';
+
+            updatePost();
         }
 
-        function remove_tr(This) {
-            const re = confirm("정말 삭제하시겠습니까?");
-            if (re == true) {
-                This.closest('tr').remove();
-            } else {
-                alert("취소하였습니다.");
+        function updatePost() {
+            const postList = document.querySelector('#postList');
+            postList.innerHTML = '';
+
+            posts.forEach((post) => {
+                const postRow = document.createElement('tr');
+
+                postRow.innerHTML = `
+            <td>${post.num}</td>
+            <td>${post.writer}</td>
+            <td>
+              ${post.content}
+              <br>
+                ${post.comments ? '└ ' + post.comments.join('<br>└ ') : ''}
+            </td>
+            <td>${post.time}</td>
+            <td>
+              <button id="deleteBtn" onclick="deletePost(${post.num
+                    })" class="button comment-button">삭제</button>
+              <button id="commentBtn" onclick="addComment(${post.num
+                    })" class="button comment-button">댓글</button>
+            </td>
+          `;
+
+                postList.appendChild(postRow);
+            });
+        }
+
+        function deletePost(postNum) {
+            const confirmed = confirm('정말 삭제하시겠습니까?');
+            if (confirmed) {
+                posts = posts.filter((post) => post.num !== postNum);
+                updatePost();
             }
         }
 
-        function comment(This) {
-            const comme = prompt("댓글을 입력하세요");
-            const tr = This.closest("tr");
-            const commentCell = tr.cells[2];
-            let commentDate = new Date();
-            if(comme==null||comme==''){
-
-            }
-            else{
-                const commentHTML = `<p id="comment">ㄴ${comme} (${commentDate.toLocaleString()})</p>`;
-                commentCell.innerHTML += commentHTML;
+        function addComment(postNum) {
+            const comment = prompt('댓글을 입력하세요.');
+            if (comment !== null && comment.trim() !== '') {
+                const post = posts.find((post) => post.num === postNum);
+                post.comments = post.comments || [];
+                const currentDate = new Date().toLocaleString();
+                const commentWithDate = `${comment} (${currentDate})`;
+                post.comments.push(commentWithDate);
+                updatePost();
             }
         }
 
+        // 모든 게시물을 삭제하는 함수
+        function deleteAllPosts() {
+            const deleteConfirm = confirm('정말 삭제하시겠습니까?');
+            if (deleteConfirm) {
+                postNum = 1;
+                posts = []; // 배열을 비움으로써 게시글 삭제
+                updatePost();
+            }
+        }
+
+        // 게시글 저장 소스
         function downloadText(filename) {
-            const tableRows = document.getElementById('nobo').getElementsByTagName('tr');
-            if (tableRows.length == 0) {
+            if (posts.length == 0) {
                 alert('저장할 데이터가 없습니다.');
                 return;
             }
-            
-            const data = [];
-            for (let i = 0; i < tableRows.length; i++) {
-                const row = tableRows[i];
-                const contentCell = row.cells[2];
-                const commentCell = row.cells[4];
-                
-                const content = contentCell.innerText.trim();
-                const comment = document.getElementById('comment');
 
-                const rowData = {
-                    id: row.cells[1].innerText.trim(), // 작성자
-                    content: content, // 내용
-                    date: row.cells[3].innerText.trim(), // 날짜와 시간
-                    comment: comment // 댓글
-                };
-                data.push(rowData);
-            }
-            
-            const jsonString = JSON.stringify(data, null, 4);
-            
-            const element = document.createElement('a');
-            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(jsonString));
-            element.setAttribute('download', filename || 'data.json');
+            var element = document.createElement('a');
+            var jsonString = JSON.stringify(posts, null, 4);
+
+            element.setAttribute(
+                'href',
+                'data:text/plain;charset=utf-8,' + encodeURIComponent(jsonString)
+            );
+            element.setAttribute('download', filename);
             element.style.display = 'none';
             document.body.appendChild(element);
             element.click();
+
             document.body.removeChild(element);
         }
-        
-        
-        
 
-
-            const label = document.getElementById('open_file');
-            const fileInput = document.getElementById('fileBtn');
-            label.addEventListener('click', function (e) {
+        // 게시글 불러오기
+        // 읽은 데이터는 jsonObj에 있음. 이를 활용하여 게시판 다시 refresh
+        const label = document.getElementById('open_file');
+        const fileInput = document.getElementById('fileBtn');
+        label.addEventListener('click', function (e) {
             e.preventDefault();
             fileInput.click();
-            });
+        });
 
-            fileInput.addEventListener('change', function (e) {
-                const file = e.target.files[0];
-                const fr = new FileReader();
-                fr.onload = () => {
-                    var fileContent = fr.result;
-                    var jsonData = JSON.parse(fileContent);
-                    refreshTable(jsonData); // 데이터를 화면에 표시하는 함수 호출
-                }
-                fr.readAsText(file);
-            });
-            
-            function refreshTable(data) {
-                const tableBody = document.getElementById('nobo');
-                tableBody.innerHTML = ''; // 테이블 내용 초기화
-            
-                data.forEach(item => {
-                    const newRow = tableBody.insertRow();
-                    const newCell1 = newRow.insertCell(0);
-                    const newCell2 = newRow.insertCell(1);
-                    const newCell3 = newRow.insertCell(2);
-                    const newCell4 = newRow.insertCell(3);
-                    const newCell5 = newRow.insertCell(4);
-
-                    newCell1.innerText='';
-                    newCell2.innerText = item.id;
-                    newCell3.innerText = item.content;
-                    //newCell3.innerText += item.comment;
-                    newCell4.innerText = item.date;
-                    newCell5.innerHTML = '<button onClick="remove_tr(this)" class="button delete-button">삭제</button><button onClick="comment(this)" class="button comment-button">댓글</button>';
-    
-                    
-                    
-                });
-            }
-            
-
-
-            function alldil(This) {
-                const tbody = document.getElementById('nobo');
-                while (tbody.firstChild) {
-                    tbody.removeChild(tbody.firstChild);
-                }
-            }
+        fileInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            const fr = new FileReader();
+            fr.onload = () => {
+                var fileContent = fr.result;
+                var jsonObj = JSON.parse(fileContent);
+                posts = jsonObj; // 파일에서 읽은 데이터를 게시글 배열에 할당
+                updatePost(); // 게시글 갱신
+            };
+            fr.readAsText(file);
+        });
     </script>
 </body>
+
 </html>
