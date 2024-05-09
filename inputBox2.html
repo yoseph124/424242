@@ -60,7 +60,7 @@
             <th scope="col" style="width: 200px; height: 25px;" id="dateHead">작성일</th>
             <th scope="col" style="width: 200px; height: 25px;" id="funcHead">기능</th>
         </tr>
-        <tbody id="postList"></tbody>
+        <tbody id="pl"></tbody>
     </table>
 
     <script>
@@ -105,7 +105,7 @@
 
         //등록함수2
         function updatePost() {
-            const postList = document.querySelector('#postList');
+            const postList = document.querySelector('#pl');
             postList.innerHTML = '';
 
             posts.forEach((post) => {
