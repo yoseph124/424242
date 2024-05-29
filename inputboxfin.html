@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="UTF-8">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        * {
+            margin: 5px;
+            padding: 0;
+        }
+
+        th,
+        td {
+            border: 1px solid #000;
+            vertical-align: middle;
+            text-align: center;
+        }
+
+
+        td:nth-child(3) {
+            text-align: left;
+        }
+
+        .button {
+            border: none;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .delete-button,
+        .comment-button {
+            background-color: #bce6f7;
+        }
+
+        .editable {
+            display: inline;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <input id="name" type="text" style="width: 100px; height: 30px; margin-right: 0px;" OnKeyDown="CheckEnter1('det')">
+    <input id="det" type="text" style="width: 500px; height: 30px; margin: 10px 5px 15px 5px;"
+        OnKeyDown="CheckEnter2('name')">
+    <input type="submit" value="글작성" onClick="addPost()" class="button">
+    <br>
+    <table style="border-collapse: collapse;" id="postTable">
+        <input type="submit" onclick="downloadText('data.json')" value="저장하기" class="button comment-button"
+            style="margin-left: 70%;">
+        <button for="fileBtn" class="function-btn button comment-button" id="open_file">불러오기</button>
+        <input type="file" id="fileBtn" style="display:none" accept=".json" title='Select JSON File' />
+        <button onclick="deleteAllPosts()" style="width: 150px; height:40px;" class="button comment-button">게시판
+            지우기</button>
+        <br>
+        <input type="text" id="sub" style="width: 500px; height: 30px; margin: 10px 5px 15px 5px;"
+            OnKeyDown="selectent('sub')">
+        <button class="button" onclick="searchPosts()">검색</button>
+        <button class="button" onclick="clearSearch()">검색해제</button>
+        <tr>
+            <th scope="col" style="width: 50px; height: 25px;" id="numHead">번호</th>
+            <th scope="col" style="width: 150px; height: 25px;" id="writerHead">작성자</th>
+            <th scope="col" style="width: 1000px; height: 25px;" id="contentHead">내용</th>
+            <th scope="col" style="width: 200px; height: 25px;" id="dateHead">작성일</th>
+            <th scope="col" style="width: 200px; height: 25px;" id="funcHead">기능</th>
+        </tr>
+        <tbody id="pl"></tbody>
+        <th colspan='5'>
+            <div id="paginationControls"></div>
+        </th>
+    </table>
+
+
+    <script>
+        let posts = JSON.parse(localStorage.getItem('posts')) || [];
+        let postNum = parseInt(localStorage.getItem('postNum')) || 1;
+        let currentPage = 1;
+        const postsPerPage = 5;
+
+        //키넘기기 함수1
+        function CheckEnter1(d) {
+            var keycode = event.keyCode;
+            if (keycode == 13) {
+                document.getElementById(d).focus();
+            }
+        }
+        //키넘기기 함수2
+        function CheckEnter2(w) {
+            var keycode = event.keyCode;
+            if (keycode == 13) {
+                document.getElementById(w).focus();
+                addPost();
+            }
+        }
+        //키넘기기 함수3 검색부분
+        function selectent(s) {
+            var keycode = event.keyCode;
+            if (keycode == 13) {
+                document.getElementById(s).focus();
+                searchPosts();
+            }
+        }
+        //등록함수1
+        function addPost() {
+            const writer = document.querySelector('#name').value;
+            const content = document.querySelector('#det').value;
+            const currentTime = new Date().toLocaleString();
+
+            const post = {
+                num: postNum++,
+                writer: writer,
+                content: content,
+                time: currentTime,
+            };
+
+            posts.push(post);
+            savePostsToLocalStorage();
+
+            document.querySelector('#name').value = '';
+            document.querySelector('#det').value = '';
+            updatePost();
+        }
+
+        //삭제함수
+        function deletePost(postNum) {
+            const confirmed = confirm('정말 삭제하시겠습니까?');
+            if (confirmed) {
+                posts = posts.filter((post) => post.num !== postNum);
+                savePostsToLocalStorage();
+                updatePost();
+            }
+        }
+
+        //댓글입력 함수
+        function addComment(postNum) {
+            const comment = prompt('댓글을 입력하세요.');
+            if (comment !== null && comment.trim() !== '') {
+                const post = posts.find((post) => post.num === postNum);
+                post.comments = post.comments || [];
+                const currentDate = new Date().toLocaleString();
+                const commentWithDate = `${comment} (${currentDate})`;
+                post.comments.push(commentWithDate);
+                savePostsToLocalStorage();
+                updatePost();
+            }
+        }
+
+        // 모든 게시물을 삭제하는 함수
+        function deleteAllPosts() {
+            const deleteConfirm = confirm('정말 삭제하시겠습니까?');
+            if (deleteConfirm) {
+                postNum = 1;
+                posts = [];
+                savePostsToLocalStorage();
+                updatePost();
+            }
+        }
+
+        //게시글 저장 소스
+        function downloadText(filename) {
+            if (posts.length == 0) {
+                alert('저장할 데이터가 없습니다.');
+                return;
+            }
+
+            var element = document.createElement('a');
+            var jsonString = JSON.stringify(posts, null, 4);
+
+            element.setAttribute(
+                'href',
+                'data:text/plain;charset=utf-8,' + encodeURIComponent(jsonString)
+            );
+            element.setAttribute('download', filename);
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+
+            document.body.removeChild(element);
+        }
+        // 게시글 불러오기
+        // 읽은 데이터는 jsonObj에 있음. 이를 활용하여 게시판 다시 refresh
+        const label = document.getElementById('open_file');
+        const fileInput = document.getElementById('fileBtn');
+        label.addEventListener('click', function (e) {
+            e.preventDefault();
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            const fr = new FileReader();
+            fr.onload = () => {
+                var fileContent = fr.result;
+                var jsonObj = JSON.parse(fileContent);
+                posts = jsonObj;
+                savePostsToLocalStorage();
+                updatePost();
+            };
+            fr.readAsText(file);
+        });
+        //검색 함수
+        function searchPosts() {
+            const searchText = document.querySelector('#sub').value.toLowerCase();
+            const filteredPosts = searchText.trim() !== '' ?
+                posts.filter(post => post.content.toLowerCase().includes(searchText)) :
+                posts;
+            currentPage = 1;
+            displayPosts(filteredPosts);
+        }
+        //검색 해제 함수
+        function clearSearch() {
+            document.querySelector('#sub').value = '';
+            displayPosts(posts);
+        }
+
+        //게시물 표시함수
+        function displayPosts(postArray) {
+            const postList = document.querySelector('#pl');
+            postList.innerHTML = '';
+
+            const startIndex = (currentPage - 1) * postsPerPage;
+            const endIndex = startIndex + postsPerPage;
+            const displayPosts = postArray.slice(startIndex, endIndex);
+
+            displayPosts.forEach((post, index) => {
+                post.num = index + 1;
+                const postRow = document.createElement('tr');
+
+                postRow.innerHTML = `
+                    <td>${post.num}</td>
+                    <td>${post.writer}</td>
+                    <td ondblclick="editPost(${post.num})" id="content-${post.num}">
+                        ${post.content}
+                        ${post.comments ? '<br>L ' + post.comments.join('<br>L ') : ''}
+                    </td>
+                    <td>${post.time}</td>
+                    <td>
+                        <button id="deleteBtn" onclick="deletePost(${post.num})" class="button comment-button">삭제</button>
+                        <button id="commentBtn" onclick="addComment(${post.num})" class="button comment-button">댓글</button>
+                    </td>
+                `;
+
+                postList.appendChild(postRow);
+            });
+
+            updatePaginationControls(postArray.length);
+        }
+        //페이징을 사용, 페이지 버튼 만드는 함수
+        function updatePaginationControls(totalPosts) {
+            const pageIndicator = document.getElementById('paginationControls');
+            pageIndicator.innerHTML = '';
+
+            const numPages = Math.ceil(totalPosts / postsPerPage);
+            for (let i = 1; i <= numPages; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.textContent = i;
+                pageButton.className = 'button';
+                pageButton.onclick = () => goToPage(i);
+                pageIndicator.appendChild(pageButton);
+            }
+        }
+        //페이지 버튼을 클릭하면 그 부분의 페이지를 보여줌
+        function goToPage(pageNum) {
+            currentPage = pageNum;
+            const searchText = document.querySelector('#sub').value.toLowerCase(); // 현재 검색어 가져오기
+            const filteredPosts = searchText.trim() !== '' ?
+                posts.filter(post => post.content.toLowerCase().includes(searchText)) :
+                posts; // 검색어가 없는 경우 기존 게시물 유지
+            displayPosts(filteredPosts);
+        }
+        //기존 updatePost 함수 변경
+        function updatePost() {
+            currentPage = 1;
+            savePostsToLocalStorage();
+            displayPosts(posts);
+        }
+        //게시물과 관련된 정보를 로컬 스토리지에 저장하는 함수
+        function savePostsToLocalStorage() {
+            localStorage.setItem('posts', JSON.stringify(posts));
+            localStorage.setItem('postNum', postNum);
+        }
+        //페이지 로드 시 로컬 스토리지에서 데이터를 불러오는 함수
+        window.onload = () => {
+            if (localStorage.getItem('posts')) {
+                posts = JSON.parse(localStorage.getItem('posts'));
+                postNum = parseInt(localStorage.getItem('postNum')) || 1;
+            }
+            updatePost();
+        }
+        // 게시물 편집 함수
+        function editPost(postNum) {
+            const postContentCell = document.getElementById(`content-${postNum}`);
+            const originalContent = posts.find(post => post.num === postNum).content;
+
+            postContentCell.innerHTML = `
+            <input type="text" id="edit-${postNum}" value="${originalContent}" class="editable" style="width: 300px; height: 20px;"">
+        `;
+
+            const editInput = document.getElementById(`edit-${postNum}`);
+
+            editInput.focus();
+
+            editInput.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    const newContent = editInput.value;
+                    posts.find(post => post.num === postNum).content = newContent;
+                    savePostsToLocalStorage();
+                    updatePost();
+                } else if (event.key === 'Escape') {
+                    postContentCell.innerHTML = originalContent;
+                }
+            });
+
+            editInput.addEventListener('blur', function () {
+                postContentCell.innerHTML = originalContent;
+            });
+        }
+    </script>
+</body>
+
+</html>
